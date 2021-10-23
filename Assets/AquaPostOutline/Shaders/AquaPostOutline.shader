@@ -90,7 +90,9 @@
 				float id2 = SAMPLE_DEPTH_TEXTURE(_ObjectIdTex, sampler_ObjectIdTex, bottomRightUV).r;
 				float id3 = SAMPLE_DEPTH_TEXTURE(_ObjectIdTex, sampler_ObjectIdTex, topLeftUV).r;
 				
-				float idEdge = (id0!=id1 || id2!=id3) ?1 :0;
+				float edgeID = step(0.01, abs(id0 - id1));
+				edgeID = lerp(step(0.01, abs(id2 - id3)), 1, edgeID);
+
 				float3 viewNormal = normal0 * 2 - 1;
 				float NdotV = 1 - dot(viewNormal, -i.viewSpaceDir);
 
@@ -110,8 +112,7 @@
 				edgeNormal = edgeNormal > _NormalThreshold ? 1 : 0;
 
 				float edge = max(edgeDepth, edgeNormal);
-				edge= max(edge,idEdge);
-
+				edge= max(edge,edgeID);
 				float4 edgeColor = float4(_Color.rgb, _Color.a * edge);
 
 				float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);

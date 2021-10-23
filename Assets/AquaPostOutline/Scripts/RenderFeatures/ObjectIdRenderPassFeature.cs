@@ -10,11 +10,6 @@ namespace AquaEffects.AquaPostOutline
         {
             public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingOpaques;
             public LayerMask layermask;
-            [Range(1000, 5000)]
-            public int queueMin = 2000;
-
-            [Range(1000, 5000)]
-            public int queueMax = 3000;
         }
         public Setting setting = new Setting();
         class CustomRenderPass : ScriptableRenderPass
@@ -26,14 +21,15 @@ namespace AquaEffects.AquaPostOutline
             FilteringSettings filtering;
             Material material;
 
-            public CustomRenderPass(string profilerTag, Setting setting, Material material)
+            public CustomRenderPass(Setting setting, Material material)
             {
                 this.setting = setting;
                 this.material = material;
 
                 RenderQueueRange queue = new RenderQueueRange();
-                queue.lowerBound = Mathf.Min(setting.queueMax, setting.queueMin);
-                queue.upperBound = Mathf.Max(setting.queueMax, setting.queueMin);
+                queue.lowerBound = 2000;
+                queue.upperBound = 3000;
+                
                 filtering = new FilteringSettings(queue, setting.layermask);
             }
 
@@ -49,19 +45,12 @@ namespace AquaEffects.AquaPostOutline
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-
                 var draw = CreateDrawingSettings(shaderTag, ref renderingData, renderingData.cameraData.defaultOpaqueSortFlags);
                 draw.overrideMaterial = material;
                 draw.overrideMaterialPassIndex = 0;
                 context.DrawRenderers(renderingData.cullResults, ref draw, ref filtering);
-
             }
 
-
-            public override void FrameCleanup(CommandBuffer cmd)
-            {
-
-            }
         }
 
         CustomRenderPass m_ScriptablePass;
@@ -91,7 +80,7 @@ namespace AquaEffects.AquaPostOutline
             if (material == null)
                 Debug.LogError("Error,material is Null!");
 
-            m_ScriptablePass = new CustomRenderPass("ObjectID", setting, material);
+            m_ScriptablePass = new CustomRenderPass(setting, material);
 
             m_ScriptablePass.renderPassEvent = setting.passEvent;
         }
