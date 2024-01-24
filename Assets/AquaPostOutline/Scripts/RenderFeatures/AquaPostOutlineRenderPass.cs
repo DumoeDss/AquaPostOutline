@@ -5,40 +5,40 @@ using UnityEngine.Rendering.Universal;
 namespace AquaPostOutline.Scripts.RenderFeatures {
     public class AquaPostOutlineRenderPass : ScriptableRenderPass
     {
-        AquaEffects.AquaPostOutline.AquaPostOutline AquaPostOutline;
-        string profilerTag;
-        Material material;
-        private RenderTargetIdentifier source { get; set; }
+        private readonly AquaEffects.AquaPostOutline.AquaPostOutline _aquaPostOutline;
+        private readonly string _profilerTag;
+        private Material _material;
+        private RenderTargetIdentifier Source { get; set; }
 
-        float _Scale;
-        Color _Color;
-        float _DepthThreshold;
-        float _DepthNormalThreshold;
-        float _DepthNormalThresholdScale;
-        float _NormalThreshold;
-        static class ShaderIDs
+        private float _scale;
+        private Color _color;
+        private float _depthThreshold;
+        private float _depthNormalThreshold;
+        private float _depthNormalThresholdScale;
+        private float _normalThreshold;
+
+        private static class ShaderIDs
         {
-            internal static readonly int MainTex = Shader.PropertyToID("_MainTex");
-            internal static readonly int _Scale = Shader.PropertyToID("_Scale");
-            internal static readonly int _Color = Shader.PropertyToID("_Color");
-            internal static readonly int _DepthThreshold = Shader.PropertyToID("_DepthThreshold");
-            internal static readonly int _DepthNormalThreshold = Shader.PropertyToID("_DepthNormalThreshold");
-            internal static readonly int _DepthNormalThresholdScale = Shader.PropertyToID("_DepthNormalThresholdScale");
-            internal static readonly int _NormalThreshold = Shader.PropertyToID("_NormalThreshold");
-            internal static readonly int _ClipToView = Shader.PropertyToID("_ClipToView");
+            internal static readonly int Scale = Shader.PropertyToID("_Scale");
+            internal static readonly int Color = Shader.PropertyToID("_Color");
+            internal static readonly int DepthThreshold = Shader.PropertyToID("_DepthThreshold");
+            internal static readonly int DepthNormalThreshold = Shader.PropertyToID("_DepthNormalThreshold");
+            internal static readonly int DepthNormalThresholdScale = Shader.PropertyToID("_DepthNormalThresholdScale");
+            internal static readonly int NormalThreshold = Shader.PropertyToID("_NormalThreshold");
+            internal static readonly int ClipToView = Shader.PropertyToID("_ClipToView");
         }
 
         public AquaPostOutlineRenderPass(string profilerTag)
         {
-            this.profilerTag = profilerTag;
+            this._profilerTag = profilerTag;
             var stack = VolumeManager.instance.stack;
-            AquaPostOutline = stack.GetComponent<AquaEffects.AquaPostOutline.AquaPostOutline>();
+            _aquaPostOutline = stack.GetComponent<AquaEffects.AquaPostOutline.AquaPostOutline>();
         }
 
         public void Setup(RenderTargetIdentifier source, Material material)
         {
-            this.source = source;
-            this.material = material;
+            this.Source = source;
+            this._material = material;
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -47,42 +47,43 @@ namespace AquaPostOutline.Scripts.RenderFeatures {
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            _Scale = AquaPostOutline.scale.value;
-            _Color = AquaPostOutline.color.value;
-            _DepthThreshold = AquaPostOutline.depthThreshold.value;
-            _DepthNormalThreshold = AquaPostOutline.depthNormalThreshold.value;
-            _DepthNormalThresholdScale = AquaPostOutline.depthNormalThresholdScale.value;
-            _NormalThreshold = AquaPostOutline.normalThreshold.value;
+            _scale = _aquaPostOutline.scale.value;
+            _color = _aquaPostOutline.color.value;
+            _depthThreshold = _aquaPostOutline.depthThreshold.value;
+            _depthNormalThreshold = _aquaPostOutline.depthNormalThreshold.value;
+            _depthNormalThresholdScale = _aquaPostOutline.depthNormalThresholdScale.value;
+            _normalThreshold = _aquaPostOutline.normalThreshold.value;
 
-            CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
+            CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
             Render(cmd, ref renderingData);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             CommandBufferPool.Release(cmd);
         }
 
-        void Render(CommandBuffer cmd, ref RenderingData renderingData)
+        private void Render(CommandBuffer cmd, ref RenderingData renderingData)
         {
             ref var cameraData = ref renderingData.cameraData;
-            if (AquaPostOutline.IsActive() && !cameraData.isSceneViewCamera && cameraData.postProcessEnabled)
+            if (_aquaPostOutline.IsActive() && !cameraData.isSceneViewCamera && cameraData.postProcessEnabled)
             {
-                SetupPostOutline(cmd, ref renderingData, material);
+                SetupPostOutline(cmd, ref renderingData, _material);
             }
         }
-        public void SetupPostOutline(CommandBuffer cmd, ref RenderingData renderingData, Material material)
+
+        private void SetupPostOutline(CommandBuffer cmd, ref RenderingData renderingData, Material material)
         {
-            material.SetFloat(ShaderIDs._Scale, _Scale);
-            material.SetColor(ShaderIDs._Color, _Color);
-            material.SetFloat(ShaderIDs._DepthThreshold, _DepthThreshold);
-            material.SetFloat(ShaderIDs._DepthNormalThreshold, _DepthNormalThreshold);
-            material.SetFloat(ShaderIDs._DepthNormalThresholdScale, _DepthNormalThresholdScale);
-            material.SetFloat(ShaderIDs._NormalThreshold, _NormalThreshold);
+            material.SetFloat(ShaderIDs.Scale, _scale);
+            material.SetColor(ShaderIDs.Color, _color);
+            material.SetFloat(ShaderIDs.DepthThreshold, _depthThreshold);
+            material.SetFloat(ShaderIDs.DepthNormalThreshold, _depthNormalThreshold);
+            material.SetFloat(ShaderIDs.DepthNormalThresholdScale, _depthNormalThresholdScale);
+            material.SetFloat(ShaderIDs.NormalThreshold, _normalThreshold);
 
             Matrix4x4 clipToView = GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.projectionMatrix, true).inverse;
 
-            material.SetMatrix(ShaderIDs._ClipToView, clipToView);
-            cmd.SetGlobalTexture("_MainTex", source);
-            cmd.Blit(source, source, material);
+            material.SetMatrix(ShaderIDs.ClipToView, clipToView);
+            cmd.SetGlobalTexture("_MainTex", Source);
+            cmd.Blit(Source, Source, material);
         }
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
